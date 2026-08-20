@@ -14,6 +14,7 @@
 #include "vga.h"
 #include "gdt.h"
 #include "dmesg.h"
+#include "paging.h"
 
 typedef struct s_cmd
 {
@@ -41,11 +42,22 @@ static void cmd_dmesg(void)
     dmesg_print();
 }
 
+// Deliberately dereferences an address outside the identity-mapped 4MB
+// (see PAGE_TEST_UNMAPPED_ADDR) to trigger a real #PF and exercise
+// page_fault_handler instead of a triple fault.
+static void cmd_page_fault(void)
+{
+    volatile uint32_t  *unmapped = (uint32_t *)PAGE_TEST_UNMAPPED_ADDR;
+
+    *unmapped;
+}
+
 static t_cmd    g_cmds[] = {
     {"halt",    	cmd_shutdown},
     {"reboot",      cmd_reboot},
     {"print-stack", cmd_print_stack},
     {"dmesg",       cmd_dmesg},
+    {"page-fault",  cmd_page_fault},
     {NULL,          NULL}
 };
 

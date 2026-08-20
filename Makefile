@@ -24,6 +24,7 @@ SRC			= idt.c \
 			  printk.c \
 			  pic.c \
 			  gdt.c \
+			  paging.c \
 			  shell.c \
 			  dmesg.c
 

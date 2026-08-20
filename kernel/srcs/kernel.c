@@ -13,6 +13,7 @@
 #include "kernel.h"
 #include "vga.h"
 #include "gdt.h"
+#include "paging.h"
 #include "kprintk.h"
 #include "shell.h"
 
@@ -153,11 +154,7 @@ void putchar(char c)
  */
 void kernel_main(void)
 {
-	gdt_init();
-	idt_init();
-	pic_init();
-	idt_set_gate(33, (uint32_t)keyboard_stub, 0x08, 0x8E);
-
+	// screen state must be ready before anything below tries to print
 	ft_bzero(g_screens, sizeof(g_screens));
 	g_screens[0].color = 0x0F;
 	g_screens[1].color = 0x24;
@@ -166,6 +163,13 @@ void kernel_main(void)
 	ft_memset_short(g_screens[1].lines, 0x24 << 8 | ' '
 			, sizeof(g_screens[1].lines));
 	enable_cursor(0, 15);
+
+	gdt_init();
+	idt_init();
+	pic_init();
+	paging_init();
+	idt_set_gate(33, (uint32_t)keyboard_stub, 0x08, 0x8E);
+
 	__asm__ volatile ("sti");  // activate interrupts after full init
 	kprintk(KERN_INFO "42\nGDT initialised at 0x%x\n", GDT_ADDR);
     print_stack(10);   // show kernel stack on boot
