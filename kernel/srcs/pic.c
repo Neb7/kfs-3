@@ -6,7 +6,7 @@
 /*   By: benpicar <benpicar@student.42mulhouse.fr>  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/29 15:48:38 by benpicar          #+#    #+#             */
-/*   Updated: 2026/06/29 15:55:43 by benpicar         ###   ########.fr       */
+/*   Updated: 2026/07/06 18:04:29 by benpicar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,7 +37,8 @@ inline uint8_t inb(uint16_t port)
 }
 
 /**
- * @brief	Initialize the PIC
+ * @brief	Initialize the PIC (Programmable Interrupt Controller).
+ * This function initializes the PIC and sets up the interrupt vectors.
  */
 void pic_init()
 {
@@ -53,7 +54,7 @@ void pic_init()
 	outb(PIC1_DATA, 0x04);  // PIC1 : PIC2 connected to IRQ2
 	outb(PIC2_DATA, 0x02);  // PIC2 : connected to IRQ2 du PIC1
 
-	// ICW4 — mode 8086
+	// ICW4 — mode 8086 (mode protected for 32-bit x86)
 	outb(PIC1_DATA, 0x01);
 	outb(PIC2_DATA, 0x01);
 

@@ -1,5 +1,5 @@
 NAME		:= kernel.bin
-ISO			:= kfs01.iso
+ISO			:= kfs.iso
 
 CC			:= gcc
 ASM			:= nasm
@@ -21,10 +21,11 @@ SRCS_DIR_C	= srcs/
 SRC			= idt.c \
 			  kernel.c \
 			  vga.c \
-			  kprintf.c \
-			  kprintk.c \
+			  printk.c \
 			  pic.c \
-			  gdt.c
+			  gdt.c \
+			  shell.c \
+			  dmesg.c
 
 SRCS_DIR_LIBFT	= libft/
 SRC_LIBFT	= ft_atoi.c \
@@ -90,6 +91,9 @@ iso: $(NAME)
 
 # launch in QEMU / KVM
 run: iso
+	qemu-system-i386 -cdrom $(ISO)
+
+debug: iso
 	qemu-system-i386 -cdrom $(ISO) -no-reboot
 
 clean: 
@@ -104,4 +108,4 @@ re: fclean all
 $(OBJS_DIR):
 	mkdir -p $@
 
-.PHONY: all iso run clean fclean re
+.PHONY: all iso run debug clean fclean re

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   kernel.c                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: benpicar <benpicar@student.42mulhouse.fr > +#+  +:+       +#+        */
+/*   By: vsyutkin <vsyutkin@student.42mulhouse.f    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/28 15:25:41 by benpicar          #+#    #+#             */
-/*   Updated: 2026/06/30 15:58:16 by benpicar         ###   ########.fr       */
+/*   Updated: 2026/07/07 13:56:49 by vsyutkin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@
 #include "vga.h"
 #include "gdt.h"
 #include "kprintk.h"
+#include "shell.h"
 
 uint16_t	*vga = (uint16_t*)0xB8000;
 
@@ -26,22 +27,28 @@ char scancode_map[128] = {
 
 void	delete_handler()
 {
-	t_vga *vga_cur = &g_screens[g_cur];
+	t_vga	*vga_cur = &g_screens[g_cur];
 
 	if (vga_cur->cursor_x > 0)
-	{
 		vga_cur->cursor_x--;
-		putchar(' ');  // overwrite the character with a space
-		vga_cur->cursor_x--;
-	}
 	else if (vga_cur->cursor_y > 0)
 	{
 		vga_cur->cursor_y--;
 		vga_cur->cursor_x = 79;
-		putchar(' ');  // overwrite the character with a space
-		vga_cur->cursor_y--;
-		vga_cur->cursor_x = 79;
+		while (vga_cur->cursor_x > 1
+				&& vga_cur->lines[vga_cur->cursor_y][vga_cur->cursor_x - 1]
+					== ((vga_cur->color << 8) | ' '))
+		{
+			vga_cur->cursor_x--;
+		}
+		if (vga_cur->lines[vga_cur->cursor_y][vga_cur->cursor_x - 1]
+				== ((vga_cur->color << 8) | ' '))
+			vga_cur->cursor_x--;
 	}
+	else
+		return ;
+	vga[vga_cur->cursor_y * 80 + vga_cur->cursor_x] = (vga_cur->color << 8) | ' ';
+	vga_cur->lines[vga_cur->cursor_y][vga_cur->cursor_x] = (vga_cur->color << 8) | ' ';
 	update_cursor();
 }
 
@@ -56,8 +63,14 @@ void keyboard_handler()
 	if (scancode & 0x80) {
 		// key released ignored
 	}
-	else if (scancode == 0x53) // Delete key
+	else if (scancode == 0x0E) // Backspace
 		delete_handler();
+	else if (scancode == 0x1C) // Enter
+	{
+		int saved_y = g_screens[g_cur].cursor_y;
+		putchar('\n');
+		shell_exec(saved_y);
+	}
 	else if (g_cur != 0 && scancode == 0x3B) // F1
 		switch_screen(0);
 	else if (g_cur != 1 && scancode == 0x3C) // F2
@@ -66,9 +79,7 @@ void keyboard_handler()
 	{
 		c = scancode_map[scancode];
 		if (c)
-		{
 			putchar(c);
-		}
 	}
 
 	outb(0x20, 0x20);  // EOI — end of interuption PIC
@@ -147,8 +158,6 @@ void kernel_main(void)
 	pic_init();
 	idt_set_gate(33, (uint32_t)keyboard_stub, 0x08, 0x8E);
 
-	__asm__ volatile ("sti");  // activate interrupts
-
 	ft_bzero(g_screens, sizeof(g_screens));
 	g_screens[0].color = 0x0F;
 	g_screens[1].color = 0x24;
@@ -157,8 +166,9 @@ void kernel_main(void)
 	ft_memset_short(g_screens[1].lines, 0x24 << 8 | ' '
 			, sizeof(g_screens[1].lines));
 	enable_cursor(0, 15);
-	kprintf("42\nGDT initialisee a 0x%x\n", GDT_ADDR);
-    print_stack(10);   // affiche la stack kernel au boot
+	__asm__ volatile ("sti");  // activate interrupts after full init
+	kprintk(KERN_INFO "42\nGDT initialised at 0x%x\n", GDT_ADDR);
+    print_stack(10);   // show kernel stack on boot
 	while (1)
 	{}
 }

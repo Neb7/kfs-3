@@ -6,7 +6,7 @@
 /*   By: benpicar <benpicar@student.42mulhouse.fr>  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/29 15:32:10 by benpicar          #+#    #+#             */
-/*   Updated: 2026/06/29 15:47:56 by benpicar         ###   ########.fr       */
+/*   Updated: 2026/07/06 18:05:17 by benpicar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,7 @@ struct idt_entry idt[256];
 struct idt_ptr   idtp;
 
 /**
- * @brief	Set a gate in the IDT
+ * @brief	Set a gate in the IDT (Interrupt Descriptor Table)
  * 
  * @param	num		The gate number
  * @param	base	The base address of the interrupt handler
@@ -33,7 +33,7 @@ void idt_set_gate(uint8_t num, uint32_t base, uint16_t selector, uint8_t flags)
 }
 
 /**
- * @brief	Initialize the IDT.
+ * @brief	Initialize the IDT (Interrupt Descriptor Table).
  */
 void idt_init()
 {

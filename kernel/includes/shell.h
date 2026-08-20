@@ -1,27 +1,20 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   kprintk.h                                          :+:      :+:    :+:   */
+/*   shell.h                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: vsyutkin <vsyutkin@student.42mulhouse.f    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/07/07 13:55:12 by vsyutkin          #+#    #+#             */
-/*   Updated: 2026/07/07 13:55:13 by vsyutkin         ###   ########.fr       */
+/*   Created: 2026/07/07 13:55:07 by vsyutkin          #+#    #+#             */
+/*   Updated: 2026/07/07 13:55:08 by vsyutkin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef KPRINTK_H
-# define KPRINTK_H
+#ifndef SHELL_H
+# define SHELL_H
 
-# define KERN_EMERG   "<0>"
-# define KERN_ALERT   "<1>"
-# define KERN_CRIT    "<2>"
-# define KERN_ERR     "<3>"
-# define KERN_WARNING "<4>"
-# define KERN_NOTICE  "<5>"
-# define KERN_INFO    "<6>"
-# define KERN_DEBUG   "<7>"
+# include "kernel.h"
 
-int	kprintk(const char *fmt, ...);
+void    shell_exec(int y);
 
 #endif

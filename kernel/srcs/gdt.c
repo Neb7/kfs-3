@@ -3,15 +3,16 @@
 /*                                                        :::      ::::::::   */
 /*   gdt.c                                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: benpicar <benpicar@student.42mulhouse.fr > +#+  +:+       +#+        */
+/*   By: benpicar <benpicar@student.42mulhouse.fr>  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/30 14:55:44 by benpicar          #+#    #+#             */
-/*   Updated: 2026/06/30 15:45:36 by benpicar         ###   ########.fr       */
+/*   Updated: 2026/07/06 17:56:01 by benpicar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "gdt.h"
 #include "kernel.h"
+#include "kprintk.h"
 
 // The GDT will be placed by the linker at GDT_ADDR (0x800)
 static t_gdt_entry gdt[GDT_COUNT + 1] __attribute__((section(".gdt")));
@@ -35,6 +36,15 @@ static t_gdt_ptr    gdtp;
 **   bits 0-3  : limit bits 16-19
 */
 
+/**
+ * @brief	Set a GDT entry
+ * 
+ * @param	i	Entry index
+ * @param	base	Base address
+ * @param	limit	Limit
+ * @param	access	Access byte
+ * @param	flags	Flags
+ */
 static void gdt_set_entry(int i, uint32_t base, uint32_t limit,
                            uint8_t access, uint8_t flags)
 {
@@ -46,6 +56,9 @@ static void gdt_set_entry(int i, uint32_t base, uint32_t limit,
     gdt[i].access      = access;
 }
 
+/**
+ * @brief	Initialize the Global Descriptor Table
+ */
 void gdt_init(void)
 {
     // Null descriptor (mandatory)
@@ -71,29 +84,32 @@ void gdt_init(void)
     // User Stack — base 0, limit 10MB, ring 3, data
     gdt_set_entry(GDT_USTACK, 0, 0x009FFFFF, 0xF2, 0xC);
 
-    gdtp.limit = (sizeof(t_gdt_entry) * GDT_COUNT) - 1;
+    gdtp.limit = (sizeof(t_gdt_entry) * (GDT_COUNT + 1)) - 1;
     gdtp.base  = GDT_ADDR;
 
     // Load the GDT and reload segments (see boot.asm: gdt_flush)
+    // DS/ES/FS/GS -> data segment, SS -> stack segment, CS -> code segment
     __asm__ volatile (
         "lgdt %0\n\t"
         "movw $0x10, %%ax\n\t"   // SEG_KDATA
-        "movw %%ax,  %%ds\n\t"
-        "movw %%ax,  %%es\n\t"
-        "movw %%ax,  %%fs\n\t"
-        "movw %%ax,  %%gs\n\t"
+        "movw %%ax,  %%ds\n\t"   // DS Data Segment
+        "movw %%ax,  %%es\n\t"   // ES Extra Segment
+        "movw %%ax,  %%fs\n\t"   // FS F Segment
+        "movw %%ax,  %%gs\n\t"   // GS G Segment
         "movw $0x18, %%ax\n\t"   // SEG_KSTACK
-        "movw %%ax,  %%ss\n\t"
-        "ljmp $0x08, $1f\n\t"    // far jump pour recharger CS (SEG_KCODE)
+        "movw %%ax,  %%ss\n\t"   // SS Stack Segment
+        "ljmp $0x08, $1f\n\t"    // far jump to reload CS (SEG_KCODE)
         "1:\n\t"
         :: "m"(gdtp) : "eax"
     );
 }
 
-/*
-** print_stack — display kernel stack frames
-** Uses EBP to traverse the frame chain.
-** Each frame: [EBP] = previous EBP, [EBP+4] = return address
+/**
+ * @brief	print_stack — display kernel stack frames.
+ * Uses EBP to traverse the frame chain.
+ * Each frame: [EBP] = previous EBP, [EBP+4] = return address.
+ * 
+ * @param	max_frames Maximum number of frames to display
 */
 void print_stack(uint32_t max_frames)
 {
@@ -102,18 +118,18 @@ void print_stack(uint32_t max_frames)
 
     __asm__ volatile ("mov %%ebp, %0" : "=r"(ebp));
 
-    kprintf("=== Kernel Stack Trace ===\n");
+    kprintk("=== Kernel Stack Trace ===\n");
     frame = 0;
     while (ebp && frame < max_frames)
     {
         uint32_t ret_addr = *(ebp + 1);
         if (ret_addr == 0)
             break;
-        kprintf("  [%u] EBP=0x%x  RET=0x%x\n", frame, (uint32_t)ebp, ret_addr);
+        kprintk("  [%u] EBP=0x%x  RET=0x%x\n", frame, (uint32_t)ebp, ret_addr);
         ebp = (uint32_t *)(*ebp);
         frame++;
     }
     if (frame == 0)
-        kprintf("  (empty stack or unreliable EBP)\n");
-    kprintf("==========================\n");
+        kprintk("  (empty stack or unreliable EBP)\n");
+    kprintk("==========================\n");
 }

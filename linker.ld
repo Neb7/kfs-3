@@ -2,7 +2,7 @@ ENTRY(start)
 
 SECTIONS
 {
-	/* GDT fixée à 0x800 (en dessous du premier MB, hors BIOS) */
+	/* GDT fixed at 0x800 (below first MB, outside BIOS) */
 	.gdt 0x00000800 :
     {
         *(.gdt)
