@@ -6,7 +6,7 @@ ASM			:= nasm
 LD			:= ld
 
 # Flags gcc: 32-bit, sans stdlib, sans dépendances hôte
-INCLUDE		:= -I kernel/includes -I kernel
+INCLUDE		:= -I kernel/includes -I kernel/includes/memory -I kernel
 CFLAGS		:= -m32 -fno-builtin -fno-stack-protector -nostdlib -nodefaultlibs -Wall -Wextra $(INCLUDE)
 
 # Flag nasm: format ELF 32-bit (obligatory for the linker)
@@ -26,7 +26,9 @@ SRC			= idt.c \
 			  gdt.c \
 			  paging.c \
 			  shell.c \
-			  dmesg.c
+			  dmesg.c \
+			  memory/frame_allocator.c \
+			  memory/kmalloc.c
 
 SRCS_DIR_LIBFT	= libft/
 SRC_LIBFT	= ft_atoi.c \

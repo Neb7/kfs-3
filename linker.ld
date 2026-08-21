@@ -31,4 +31,7 @@ SECTIONS
         *(.bss)
 		*(COMMON)
     }
+
+	/* Tag where the compiled kernel ends in the RAM. */
+    kernel_end = .;
 }
