@@ -151,8 +151,12 @@ void putchar(char c)
 
 /**
  * @brief	Main kernel function
+ *
+ * @param	magic Multiboot magic number left in EAX by GRUB
+ * @param	mb_info_addr Physical address of the multiboot_info structure,
+ *		left in EBX by GRUB
  */
-void kernel_main(void)
+void kernel_main(uint32_t magic, uint32_t mb_info_addr)
 {
 	// screen state must be ready before anything below tries to print
 	ft_bzero(g_screens, sizeof(g_screens));
@@ -172,6 +176,11 @@ void kernel_main(void)
 
 	__asm__ volatile ("sti");  // activate interrupts after full init
 	kprintk(KERN_INFO "42\nGDT initialised at 0x%x\n", GDT_ADDR);
+	if (magic != MULTIBOOT_MAGIC)
+		kprintk(KERN_EMERG "Invalid multiboot magic: 0x%x (expected 0x%x)\n",
+			magic, MULTIBOOT_MAGIC);
+	else
+		kprintk(KERN_INFO "Multiboot info structure at 0x%x\n", mb_info_addr);
     print_stack(10);   // show kernel stack on boot
 	while (1)
 	{}

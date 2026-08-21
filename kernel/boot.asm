@@ -3,9 +3,13 @@ BITS 32
 section .multiboot
 align 4
 
+; ----------
+; Multiboot header: magic, flags (none requested), checksum
+; (magic + flags + checksum must sum to 0 so GRUB accepts this as Multiboot)
 dd 0x1BADB002
 dd 0
 dd -(0x1BADB002)
+; ----------
 
 section .bss
 align 16
@@ -26,10 +30,12 @@ extern page_fault_handler
 start:
     cli
     mov esp, stack_top
-	xor ebp, ebp      ; EBP = 0
-	push ebp          ; empile 0 sur la stack
-	mov ebp, esp      ; EBP pointe sur ce 0
+	xor ebp, ebp		; EBP = 0
+	push ebp			; push 0 onto the stack
+	mov ebp, esp		; EBP points to this 0
 
+	push ebx			; GRUB left EAX = multiboot magic, EBX = multiboot_info* : pass both
+	push eax			; to kernel_main (cdecl: pushed right-to-left, so EBX first, EAX last)
     call kernel_main
 
 .loop:

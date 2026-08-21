@@ -27,6 +27,8 @@ typedef long long			int64_t;
 extern char scancode_map[128];
 extern uint16_t *vga;
 
+# define MULTIBOOT_MAGIC	0x2BADB002
+
 struct idt_entry {
 	uint16_t base_low;   // bits 0-15 of the handler address
 	uint16_t selector;   // code segment (usually 0x08) 0x10
@@ -58,6 +60,6 @@ void enable_cursor(uint8_t top, uint8_t bottom);
 void update_cursor();
 extern void keyboard_stub(void);
 void putchar(char c);
-void kernel_main(void);
+void kernel_main(uint32_t magic, uint32_t mb_info_addr);
 
 #endif
