@@ -34,7 +34,7 @@ static void	paging_build_identity_map(void)
 	i = 0;
 	while (i < PAGE_TABLE_SIZE)
 	{
-		page_table_0[i] = (i * 0x1000) | PAGE_PRESENT | PAGE_RW;
+		page_table_0[i] = (i * PAGE_SIZE) | PAGE_PRESENT | PAGE_RW;
 		i++;
 	}
 	page_directory[0] = ((uint32_t)page_table_0) | PAGE_PRESENT | PAGE_RW;
