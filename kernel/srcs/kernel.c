@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   kernel.c                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: vsyutkin <vsyutkin@student.42mulhouse.f    +#+  +:+       +#+        */
+/*   By: benpicar <benpicar@student.42mulhouse.fr > +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/28 15:25:41 by benpicar          #+#    #+#             */
-/*   Updated: 2026/07/07 13:56:49 by vsyutkin         ###   ########.fr       */
+/*   Updated: 2026/08/21 13:23:20 by benpicar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@
 #include "paging.h"
 #include "kprintk.h"
 #include "shell.h"
+#include "frame_allocator.h"
 
 uint16_t	*vga = (uint16_t*)0xB8000;
 
@@ -172,6 +173,7 @@ void kernel_main(uint32_t magic, uint32_t mb_info_addr)
 	idt_init();
 	pic_init();
 	paging_init();
+	frame_allocator_init(mb_info_addr);
 	idt_set_gate(33, (uint32_t)keyboard_stub, 0x08, 0x8E);
 
 	__asm__ volatile ("sti");  // activate interrupts after full init

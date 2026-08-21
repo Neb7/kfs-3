@@ -3,15 +3,17 @@
 /*                                                        :::      ::::::::   */
 /*   frame_allocator.c                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: vsyutkin <vsyutkin@student.42mulhouse.f    +#+  +:+       +#+        */
+/*   By: benpicar <benpicar@student.42mulhouse.fr > +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/21 10:44:48 by vsyutkin          #+#    #+#             */
-/*   Updated: 2026/08/21 11:46:59 by vsyutkin         ###   ########.fr       */
+/*   Updated: 2026/08/21 14:02:50 by benpicar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "kmalloc.h"
 #include "multiboot.h"
+#include "frame_allocator.h"
+#include "kprintk.h"
 
 uint32_t	g_total_ram = 0;
 uint32_t	g_total_frames = 0;
@@ -19,8 +21,11 @@ uint8_t		g_frame_bitmap[MAX_BITMAP_SIZE];
 
 /**
  * @brief	Walk the multiboot mmap entries and set g_total_ram to the
- *		highest physical address reported, across ALL entries (not just
- *		type == available) so reserved holes still get a bitmap slot later.
+ *		highest physical address reported by an available (type == 1)
+ *		entry. Reserved entries are ignored here: near the 4GB mark they
+ *		can push base_addr + length to exactly 0x100000000, which would
+ *		overflow and wrap to 0 once truncated to uint32_t. Reserved holes
+ *		are still marked in the bitmap separately, by mark_reserved_regions.
  *
  * @param	mmap_addr Physical address of the first mmap entry
  * @param	mmap_length Total size in bytes of the mmap entry list
@@ -35,9 +40,12 @@ void	get_total_ram(uint32_t mmap_addr, uint32_t mmap_length)
 	while (offset < mmap_length)
 	{
 		entry = (struct multiboot_mmap_entry *)(mmap_addr + offset);
-		top = entry->base_addr + entry->length;
-		if (top > g_total_ram)
-			g_total_ram = (uint32_t)top;
+		if (entry->type == 1)
+		{
+			top = entry->base_addr + entry->length;
+			if (top > g_total_ram)
+				g_total_ram = (uint32_t)top;
+		}
 		offset += entry->size + sizeof(entry->size);
 	}
 }
@@ -124,10 +132,69 @@ void	frame_allocator_init(uint32_t mb_info_addr)
 		ft_bzero(g_frame_bitmap, sizeof(g_frame_bitmap));
 		mark_kernel_reserved();
 		mark_reserved_regions(mb_info->mmap_addr, mb_info->mmap_length);
+		kprintk(KERN_INFO "frame_allocator_init: total RAM %u bytes, %u frames\n",
+			g_total_ram, g_total_frames);
 	}
 	else
 	{
+		kprintk(KERN_ERR "frame_allocator_init: multiboot mmap not available\n");
 		// Handle the case where mmap is not available
 		// or at least display info.
 	}
+}
+
+/**
+ * @brief	Clear a single frame's bit in the bitmap (mark it free).
+ *		Mirrors set_frame_used's bound check.
+ *
+ * @param	frame_index Index of the frame to clear (address / PAGE_SIZE)
+ */
+static void	clear_frame_used(uint32_t frame_index)
+{
+	if (frame_index >= MAX_FRAMES_SUPPORTED)
+		return ;
+	g_frame_bitmap[frame_index / 8] &= ~(1 << (frame_index % 8));
+}
+
+/**
+ * @brief	Return 1 if the given frame is marked used, 0 if free.
+ */
+static int	frame_is_used(uint32_t frame_index)
+{
+	return ((g_frame_bitmap[frame_index / 8] >> (frame_index % 8)) & 1);
+}
+
+/**
+ * @brief	Find the first free frame within the RAM actually reported by
+ *		multiboot (g_total_frames), mark it used, and return its
+ *		physical address.
+ *
+ * @return	The physical address of the newly reserved frame, or
+ *		FRAME_ALLOC_FAILED if no frame is free.
+ */
+uint32_t	frame_alloc(void)
+{
+	uint32_t	frame;
+
+	frame = 0;
+	while (frame < g_total_frames)
+	{
+		if (!frame_is_used(frame))
+		{
+			set_frame_used(frame);
+			return (frame * PAGE_SIZE);
+		}
+		frame++;
+	}
+	return (FRAME_ALLOC_FAILED);
+}
+
+/**
+ * @brief	Mark the frame containing this physical address as free again.
+ *
+ * @param	addr Physical address previously returned by frame_alloc
+ */
+void	frame_free(uint32_t addr)
+{
+	clear_frame_used(addr / PAGE_SIZE);
 }
