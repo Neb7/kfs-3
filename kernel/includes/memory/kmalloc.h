@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   kmalloc.h                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: vsyutkin <vsyutkin@student.42mulhouse.f    +#+  +:+       +#+        */
+/*   By: benpicar <benpicar@student.42mulhouse.fr > +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/21 08:05:13 by vsyutkin          #+#    #+#             */
-/*   Updated: 2026/08/21 11:45:44 by vsyutkin         ###   ########.fr       */
+/*   Updated: 2026/08/23 14:39:53 by benpicar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,24 @@
 
 # include "kernel.h"
 # include "paging.h"
+
+
+# include "frame_allocator.h"
+
+// Fixed virtual start of the kernel heap: right after the 4MB identity
+// map built at boot (paging_build_identity_map), so kbrk never collides
+// with kernel code/data/bss or the frame bitmap.
+# define KHEAP_START	0x00400000
+
+# define BLOCK_ALIGN		4
+# define MIN_SPLIT_SIZE	(sizeof(t_block_header) + BLOCK_ALIGN)
+
+typedef struct s_block_header
+{
+	uint32_t				size;	// usable size, header excluded
+	uint8_t					free;
+	struct s_block_header	*next;
+}	t_block_header;
 
 // 4GB / PAGE_SIZE, expressed directly in frames (not bytes: 4GB itself
 // overflows uint32_t by 1, so it can never be represented in bytes here).
@@ -25,5 +43,12 @@ extern uint32_t	g_total_ram;
 extern uint32_t	g_total_frames;
 extern uint8_t	g_frame_bitmap[MAX_BITMAP_SIZE];
 extern char 	kernel_end; // address of the end of the kernel
+
+# define KBRK_FAILED	((uint32_t)-1)
+
+uint32_t	kbrk(int32_t increment);
+void		*kmalloc(uint32_t size);
+void		kfree(void *ptr);
+uint32_t	ksize(void *ptr);
 
 #endif

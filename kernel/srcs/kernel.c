@@ -6,7 +6,7 @@
 /*   By: benpicar <benpicar@student.42mulhouse.fr > +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/28 15:25:41 by benpicar          #+#    #+#             */
-/*   Updated: 2026/08/21 13:23:20 by benpicar         ###   ########.fr       */
+/*   Updated: 2026/08/23 13:30:56 by benpicar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 #include "kprintk.h"
 #include "shell.h"
 #include "frame_allocator.h"
+#include "kmalloc.h"
 
 uint16_t	*vga = (uint16_t*)0xB8000;
 
@@ -184,6 +185,21 @@ void kernel_main(uint32_t magic, uint32_t mb_info_addr)
 	else
 		kprintk(KERN_INFO "Multiboot info structure at 0x%x\n", mb_info_addr);
     print_stack(10);   // show kernel stack on boot
+
+
+	// TEST kmalloc/kfree/ksize/kbrk — temporary, will be reverted
+	{
+		void	*a = kmalloc(16);
+		void	*b = kmalloc(32);
+		uint32_t size_a = ksize(a);
+		kprintk(KERN_INFO "TEST a=0x%x b=0x%x size_a=%u\n",
+			(uint32_t)a, (uint32_t)b, size_a);
+		kfree(a);
+		void	*c = kmalloc(8);
+		kprintk(KERN_INFO "TEST c=0x%x (a was 0x%x, reuse=%d) size_c=%u\n",
+			(uint32_t)c, (uint32_t)a, c == a, ksize(c));
+	}
+	
 	while (1)
 	{}
 }
