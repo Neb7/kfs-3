@@ -28,7 +28,8 @@ SRC			= idt.c \
 			  shell.c \
 			  dmesg.c \
 			  memory/frame_allocator.c \
-			  memory/kmalloc.c
+			  memory/kmalloc.c \
+			  memory/vmalloc.c
 
 SRCS_DIR_LIBFT	= libft/
 SRC_LIBFT	= ft_atoi.c \

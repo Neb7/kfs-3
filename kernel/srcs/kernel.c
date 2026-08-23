@@ -185,7 +185,7 @@ void kernel_main(uint32_t magic, uint32_t mb_info_addr)
 	else
 		kprintk(KERN_INFO "Multiboot info structure at 0x%x\n", mb_info_addr);
     print_stack(10);   // show kernel stack on boot
-	
+
 	while (1)
 	{}
 }
