@@ -27,6 +27,7 @@ SRC			= idt.c \
 			  paging.c \
 			  shell.c \
 			  dmesg.c \
+			  kernel_panic.c \
 			  memory/frame_allocator.c \
 			  memory/kmalloc.c \
 			  memory/vmalloc.c

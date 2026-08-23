@@ -13,6 +13,7 @@
 #include "paging.h"
 #include "kprintk.h"
 #include "frame_allocator.h"
+#include "kernel_panic.h"
 
 extern void	page_fault_stub(void);
 
@@ -92,16 +93,11 @@ void	page_fault_handler(uint32_t error_code)
 	uint32_t	fault_addr;
 
 	__asm__ volatile ("mov %%cr2, %0" : "=r"(fault_addr));
-	kprintk(KERN_EMERG "PAGE FAULT at 0x%x (error=0x%x)\n",
-		fault_addr, error_code);
-	kprintk(KERN_EMERG "  %s, %s, %s\n",
+	kernel_panic("PAGE FAULT at 0x%x (error=0x%x): %s, %s, %s",
+		fault_addr, error_code,
 		(error_code & 0x1) ? "protection violation" : "page not present",
 		(error_code & 0x2) ? "write" : "read",
 		(error_code & 0x4) ? "user mode" : "kernel mode");
-	kprintk(KERN_EMERG "Kernel halted.\n");
-	__asm__ volatile ("cli");
-	while (1)
-		__asm__ volatile ("hlt");
 }
 
 /**

@@ -13,6 +13,8 @@
 #ifndef KPRINTK_H
 # define KPRINTK_H
 
+# include <stdarg.h>
+
 # define KERN_EMERG   "<0>"
 # define KERN_ALERT   "<1>"
 # define KERN_CRIT    "<2>"
@@ -23,5 +25,6 @@
 # define KERN_DEBUG   "<7>"
 
 int	kprintk(const char *fmt, ...);
+int	vsnprintf(char *buf, int size, const char *fmt, va_list args);
 
 #endif

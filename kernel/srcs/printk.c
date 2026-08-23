@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   printk.c                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: vsyutkin <vsyutkin@student.42mulhouse.f    +#+  +:+       +#+        */
+/*   By: benpicar <benpicar@student.42mulhouse.fr > +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/07 13:54:42 by vsyutkin          #+#    #+#             */
-/*   Updated: 2026/07/07 13:54:44 by vsyutkin         ###   ########.fr       */
+/*   Updated: 2026/08/23 16:37:47 by benpicar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,6 @@
 #include "vga.h"
 #include "kprintk.h"
 #include "dmesg.h"
-#include <stdarg.h>
 
 #define KPRINTK_BUF 256
 
@@ -180,7 +179,7 @@ static void sb_putarg(t_sbuf *sb, char c, va_list *args)
         sb_putchar(sb, '%');
 }
 
-static int  vsnprintf(char *buf, int size, const char *fmt, va_list args)
+int  vsnprintf(char *buf, int size, const char *fmt, va_list args)
 {
     t_sbuf  sb;
     int     cursor;
