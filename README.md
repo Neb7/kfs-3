@@ -6,11 +6,6 @@ Construire un Page Directory et au moins une Page Table en mémoire (souvent une
 
 Étape 2 — Structure mémoire théorique
 Coder les structures C qui représentent les entrées de page directory/table (avec les flags P, R/W, U/S...), et une façon de savoir quelles pages/frames physiques sont libres ou occupées (souvent un bitmap des frames physiques de 4 Ko).
-Étape 1 — Activer la pagination
-Construire un Page Directory et au moins une Page Table en mémoire (souvent une identity-map au début : adresse virtuelle = adresse physique, pour ne pas te faire sauter le kernel au moment de l'activation). Charger l'adresse du directory dans CR3, puis mettre le bit PG (bit 31) de CR0 à 1.
-
-Étape 2 — Structure mémoire théorique
-Coder les structures C qui représentent les entrées de page directory/table (avec les flags P, R/W, U/S...), et une façon de savoir quelles pages/frames physiques sont libres ou occupées (souvent un bitmap des frames physiques de 4 Ko).
 
 Étape 3 — Séparer Kernel space / User space
 Définir une convention d'adresses : par exemple le kernel vit dans les adresses hautes (ex: à partir de 0xC0000000, classique), l'espace utilisateur dans les basses. Ça prépare le terrain pour l'isolation entre processus plus tard (même si aujourd'hui il n'y a encore qu'un seul "processus", le kernel).

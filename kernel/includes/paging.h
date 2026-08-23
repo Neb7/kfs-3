@@ -27,7 +27,9 @@
 
 typedef uint32_t t_page_entry;
 
-void	paging_init(void);
-void	page_fault_handler(uint32_t error_code);
+void		paging_init(void);
+void		page_fault_handler(uint32_t error_code);
+int			paging_map_page(uint32_t virt_addr, uint32_t phys_addr, uint32_t flags);
+uint32_t	paging_get_phys(uint32_t virt_addr);
 
 #endif

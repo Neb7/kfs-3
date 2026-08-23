@@ -6,12 +6,13 @@
 /*   By: benpicar <benpicar@student.42mulhouse.fr > +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/20 16:48:52 by benpicar          #+#    #+#             */
-/*   Updated: 2026/08/20 19:08:40 by benpicar         ###   ########.fr       */
+/*   Updated: 2026/08/23 12:25:15 by benpicar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "paging.h"
 #include "kprintk.h"
+#include "frame_allocator.h"
 
 extern void	page_fault_stub(void);
 
@@ -101,4 +102,84 @@ void	page_fault_handler(uint32_t error_code)
 	__asm__ volatile ("cli");
 	while (1)
 		__asm__ volatile ("hlt");
+}
+
+/**
+ * @brief	Return the page table covering virt_addr, allocating and
+ *		zeroing a fresh one via frame_alloc if it is missing and create
+ *		is set. The table's own frame is written to directly through its
+ *		physical address, so it must fall inside memory already mapped
+ *		identity (virt == phys): true today since the kernel only ever
+ *		calls this before enough frames have been handed out to leave
+ *		the first 4MB identity-mapped range (see paging_build_identity_map).
+ *
+ * @param	virt_addr Virtual address whose table is requested
+ * @param	create Allocate the table if it does not exist yet
+ * @return	Pointer to the 1024-entry page table, or NULL if absent
+ *		(create == 0) or allocation failed (create == 1)
+ */
+static t_page_entry	*paging_get_table(uint32_t virt_addr, int create)
+{
+	uint32_t	dir_index;
+	uint32_t	frame;
+
+	dir_index = virt_addr >> 22;
+	if (!(page_directory[dir_index] & PAGE_PRESENT))
+	{
+		if (!create)
+			return (NULL);
+		frame = frame_alloc();
+		if (frame == FRAME_ALLOC_FAILED)
+			return (NULL);
+		ft_bzero((void *)frame, PAGE_TABLE_SIZE * sizeof(t_page_entry));
+		// USER left set on the directory entry: the actual restriction
+		// is enforced per-page below, in the table entry itself.
+		page_directory[dir_index] = frame | PAGE_PRESENT | PAGE_RW | PAGE_USER;
+	}
+	return ((t_page_entry *)(page_directory[dir_index] & ~0xFFF));
+}
+
+/**
+ * @brief	Map a single 4KB page: virt_addr -> phys_addr, creating the
+ *		page table for that range if needed.
+ *
+ * @param	virt_addr Virtual address to map (rounded down to its page)
+ * @param	phys_addr Physical address it should point to (rounded down)
+ * @param	flags Extra entry flags (e.g. PAGE_RW, PAGE_USER); PAGE_PRESENT
+ *		is added automatically
+ * @return	0 on success, -1 if the page table could not be created
+ */
+int	paging_map_page(uint32_t virt_addr, uint32_t phys_addr, uint32_t flags)
+{
+	t_page_entry	*table;
+	uint32_t		table_index;
+
+	table = paging_get_table(virt_addr, 1);
+	if (!table)
+		return (-1);
+	table_index = (virt_addr >> 12) & 0x3FF;
+	table[table_index] = (phys_addr & ~0xFFF) | (flags & 0xFFF) | PAGE_PRESENT;
+	__asm__ volatile ("invlpg (%0)" :: "r"(virt_addr) : "memory");
+	return (0);
+}
+
+/**
+ * @brief	Look up the physical address currently mapped to virt_addr.
+ *
+ * @param	virt_addr Virtual address to translate
+ * @return	The physical address (offset within the page included), or 0
+ *		if virt_addr is not currently mapped
+ */
+uint32_t	paging_get_phys(uint32_t virt_addr)
+{
+	t_page_entry	*table;
+	uint32_t		table_index;
+
+	table = paging_get_table(virt_addr, 0);
+	if (!table)
+		return (0);
+	table_index = (virt_addr >> 12) & 0x3FF;	// index of the page within the table
+	if (!(table[table_index] & PAGE_PRESENT))
+		return (0);
+	return ((table[table_index] & ~0xFFF) | (virt_addr & 0xFFF));
 }
