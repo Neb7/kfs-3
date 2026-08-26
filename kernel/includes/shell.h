@@ -15,6 +15,6 @@
 
 # include "kernel.h"
 
-void    shell_exec(int y);
+void    shell_exec(uint16_t *line);
 
 #endif

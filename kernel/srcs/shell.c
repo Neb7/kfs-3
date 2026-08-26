@@ -15,6 +15,8 @@
 #include "gdt.h"
 #include "dmesg.h"
 #include "paging.h"
+#include "kmalloc.h"
+#include "kprintk.h"
 
 typedef struct s_cmd
 {
@@ -52,14 +54,85 @@ static void cmd_page_fault(void)
     *unmapped;
 }
 
+static void cmd_meminfo(void)
+{
+    frame_allocator_dump();
+}
+
+static void cmd_kheap(void)
+{
+    kheap_dump();
+}
+
+static void cmd_vheap(void)
+{
+    vheap_dump();
+}
+
+// Allocates two kernel-heap blocks, prints their pointer/size, frees the
+// first one, then dumps the block list — proves kmalloc/kfree/ksize work
+// live and shows a freed block sitting in the list, ready to be reused.
+static void cmd_kalloc_test(void)
+{
+    void    *a;
+    void    *b;
+
+    a = kmalloc(64);
+    b = kmalloc(128);
+    kprintk(KERN_INFO "kalloc-test: a=%p (size=%u) b=%p (size=%u)\n",
+        a, ksize(a), b, ksize(b));
+    kfree(a);
+    kprintk(KERN_INFO "kalloc-test: freed a\n");
+    kheap_dump();
+}
+
+// Same demonstration as cmd_kalloc_test, for the user heap (vmalloc).
+static void cmd_valloc_test(void)
+{
+    void    *a;
+    void    *b;
+
+    a = vmalloc(64);
+    b = vmalloc(128);
+    kprintk(KERN_INFO "valloc-test: a=%p (size=%u) b=%p (size=%u)\n",
+        a, vsize(a), b, vsize(b));
+    vfree(a);
+    kprintk(KERN_INFO "valloc-test: freed a\n");
+    vheap_dump();
+}
+
+static void cmd_help(void);
+
 static t_cmd    g_cmds[] = {
     {"halt",    	cmd_shutdown},
     {"reboot",      cmd_reboot},
     {"print-stack", cmd_print_stack},
     {"dmesg",       cmd_dmesg},
     {"page-fault",  cmd_page_fault},
+    {"meminfo",     cmd_meminfo},
+    {"kheap",       cmd_kheap},
+    {"vheap",       cmd_vheap},
+    {"kalloc-test", cmd_kalloc_test},
+    {"valloc-test", cmd_valloc_test},
+    {"help",        cmd_help},
     {NULL,          NULL}
 };
+
+// Lists every command by walking g_cmds itself (the same table shell_parse
+// dispatches from), so it never drifts out of sync when a command is
+// added/removed: nothing here to update by hand.
+static void cmd_help(void)
+{
+    int i;
+
+    kprintk(KERN_INFO "Available commands:\n");
+    i = 0;
+    while (g_cmds[i].name)
+    {
+        kprintk(KERN_INFO "  %s\n", g_cmds[i].name);
+        i++;
+    }
+}
 
 static int  cmd_match(uint16_t *line, const char *name)
 {
@@ -94,7 +167,7 @@ static void shell_parse(uint16_t *line)
     }
 }
 
-void    shell_exec(int y)
+void    shell_exec(uint16_t *line)
 {
-    shell_parse(g_screens[g_cur].lines[y]);
+    shell_parse(line);
 }

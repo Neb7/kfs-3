@@ -11,6 +11,7 @@
 /* ************************************************************************** */
 
 #include "kmalloc.h"
+#include "kprintk.h"
 
 static t_heap_state	g_heap_state = {0, 0, NULL, NULL, PAGE_RW | PAGE_USER};
 
@@ -181,5 +182,27 @@ uint32_t	vsize(void *ptr)
 	if (!ptr)
 		return (0);
 	return (((t_block_header *)ptr - 1)->size);
+}
+
+/**
+ * @brief	Print the user heap's break/mapped_end and its block list
+ *		(address, size, free/used), for inspection from the shell.
+ */
+void	vheap_dump(void)
+{
+	t_block_header	*block;
+	int				i;
+
+	kprintk(KERN_INFO "vheap: break=0x%x mapped_end=0x%x\n",
+		g_heap_state.heap_break, g_heap_state.mapped_end);
+	block = g_heap_state.head;
+	i = 0;
+	while (block)
+	{
+		kprintk(KERN_INFO "  [%d] %p size=%u %s\n", i, (void *)block,
+			block->size, block->free ? "free" : "used");
+		block = block->next;
+		i++;
+	}
 }
 

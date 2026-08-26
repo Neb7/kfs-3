@@ -70,9 +70,16 @@ void keyboard_handler()
 		delete_handler();
 	else if (scancode == 0x1C) // Enter
 	{
-		int saved_y = g_screens[g_cur].cursor_y;
+		// Copy the line's content now, before putchar('\n'): if the
+		// cursor is on the last row, it can trigger scroll(), which
+		// shifts/erases lines[] — reading by a saved row index afterward
+		// could then read the wrong (or blanked) row instead.
+		uint16_t	saved_line[80];
+
+		ft_memcpy(saved_line, g_screens[g_cur].lines[g_screens[g_cur].cursor_y],
+			sizeof(saved_line));
 		putchar('\n');
-		shell_exec(saved_y);
+		shell_exec(saved_line);
 	}
 	else if (g_cur != 0 && scancode == 0x3B) // F1
 		switch_screen(0);

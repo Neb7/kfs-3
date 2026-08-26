@@ -198,3 +198,25 @@ void	frame_free(uint32_t addr)
 {
 	clear_frame_used(addr / PAGE_SIZE);
 }
+
+/**
+ * @brief	Print a summary of the frame allocator's current state: total
+ *		RAM detected, and how many of the frames within it are used/free.
+ */
+void	frame_allocator_dump(void)
+{
+	uint32_t	frame;
+	uint32_t	used;
+
+	used = 0;
+	frame = 0;
+	while (frame < g_total_frames)
+	{
+		if (frame_is_used(frame))
+			used++;
+		frame++;
+	}
+	kprintk(KERN_INFO
+		"meminfo: %u bytes RAM, %u frames total, %u used, %u free\n",
+		g_total_ram, g_total_frames, used, g_total_frames - used);
+}

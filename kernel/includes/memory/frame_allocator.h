@@ -20,5 +20,6 @@
 void		frame_allocator_init(uint32_t mb_info_addr);
 uint32_t	frame_alloc(void);
 void		frame_free(uint32_t addr);
+void		frame_allocator_dump(void);
 
 #endif

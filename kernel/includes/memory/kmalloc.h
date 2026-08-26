@@ -66,4 +66,7 @@ void		*vmalloc(uint32_t size);
 void		vfree(void *ptr);
 uint32_t	vsize(void *ptr);
 
+void		kheap_dump(void);
+void		vheap_dump(void);
+
 #endif
