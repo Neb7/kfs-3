@@ -46,6 +46,10 @@ static void	paging_build_identity_map(void)
 		page_directory[i] = 0; // not present: unused for now
 		i++;
 	}
+	// Recursive mapping (see paging.h): no PAGE_USER, this window is for
+	// the kernel's own bookkeeping only, never exposed to user mode.
+	page_directory[PAGE_DIR_INDEX] = ((uint32_t)page_directory)
+			| PAGE_PRESENT | PAGE_RW;
 }
 
 /**
@@ -101,18 +105,20 @@ void	page_fault_handler(uint32_t error_code)
 }
 
 /**
- * @brief	Return the page table covering virt_addr, allocating and
- *		zeroing a fresh one via frame_alloc if it is missing and create
- *		is set. The table's own frame is written to directly through its
- *		physical address, so it must fall inside memory already mapped
- *		identity (virt == phys): true today since the kernel only ever
- *		calls this before enough frames have been handed out to leave
- *		the first 4MB identity-mapped range (see paging_build_identity_map).
+ * @brief	Return the page table covering virt_addr, allocating a fresh
+ *		one via frame_alloc if it is missing and create is set.
+ * Never dereferences the table's physical frame directly: a table can
+ * live anywhere in physical RAM, well outside the 4MB identity map, once
+ * kmalloc/vmalloc grow enough. Instead it is always accessed through the
+ * recursive mapping (see paging.h / PAGE_TABLE_VADDR), which resolves to
+ * the right physical frame regardless of where that frame actually is.
+ * Source: https://wiki.osdev.org/Page_Tables (section "Recursive mapping")
  *
  * @param	virt_addr Virtual address whose table is requested
  * @param	create Allocate the table if it does not exist yet
- * @return	Pointer to the 1024-entry page table, or NULL if absent
- *		(create == 0) or allocation failed (create == 1)
+ * @return	Pointer to the 1024-entry page table (through its recursive
+ *		virtual address), or NULL if absent (create == 0) or allocation
+ *		failed (create == 1)
  */
 static t_page_entry	*paging_get_table(uint32_t virt_addr, int create)
 {
@@ -127,12 +133,15 @@ static t_page_entry	*paging_get_table(uint32_t virt_addr, int create)
 		frame = frame_alloc();
 		if (frame == FRAME_ALLOC_FAILED)
 			return (NULL);
-		ft_bzero((void *)frame, PAGE_TABLE_SIZE * sizeof(t_page_entry));
 		// USER left set on the directory entry: the actual restriction
 		// is enforced per-page below, in the table entry itself.
 		page_directory[dir_index] = frame | PAGE_PRESENT | PAGE_RW | PAGE_USER;
+		__asm__ volatile ("invlpg (%0)" ::
+			"r"(PAGE_TABLE_VADDR(dir_index)) : "memory");
+		ft_bzero((void *)PAGE_TABLE_VADDR(dir_index),
+			PAGE_TABLE_SIZE * sizeof(t_page_entry));
 	}
-	return ((t_page_entry *)(page_directory[dir_index] & ~0xFFF));
+	return ((t_page_entry *)PAGE_TABLE_VADDR(dir_index));
 }
 
 /**
